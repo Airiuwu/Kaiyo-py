@@ -11,3 +11,4 @@ mysql = {
     'password': '',
     'user': ''
 }
+api_key = ''
