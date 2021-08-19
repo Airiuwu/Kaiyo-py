@@ -223,55 +223,6 @@ async def top(ctx):
 	await ctx.send(embed=embed)
 
 @bot.command(pass_context=True)
-async def baptize(ctx, user: discord.User, verse=96):
-	if ctx.message.author.id == 735891204108976268:
-		async with aiohttp.ClientSession() as session:
-			async with session.get("https://www.gutenberg.org/files/10/10-0.txt") as bible:
-				if bible.status == 200:
-					await ctx.message.delete()
-					verses = await bible.text()
-					holyWater = verses.splitlines()
-					while True:
-						if holyWater[verse] == "":
-							verse += 1
-						else:
-							await user.send(holyWater[verse])
-							verse += 1
-							await asyncio.sleep(1)
-
-				await ctx.send("the deed is done.")
-	else:
-		await ctx.send("You do not have permission to use this command.")
-
-@bot.command(pass_context=True)
-async def py(ctx):
-	if ctx.message.author.id == 735891204108976268:
-		if ctx.message.channel.mention != "<#858574085834932224>":
-			await ctx.message.add_reaction('❌')
-			await ctx.send("sorry, no.")
-		else:
-			code, finalCode = ctx.message.content[4:], ctx.message.content[4:]
-			markup = code[:5]
-			if markup == "```py":
-				code = code[6:]
-				finalCode = code[:-3]
-			old_stdout = sys.stdout
-			new_stdout = StringIO()
-			sys.stdout = new_stdout
-			try:
-				exec(finalCode)
-				result = sys.stdout.getvalue().strip()
-				await ctx.message.add_reaction('✅')
-				await ctx.send(result)
-			except Exception as error:
-				await ctx.message.add_reaction('❌')
-				await ctx.send(f'```Error: {error}```')
-			sys.stdout = old_stdout
-	else:
-		await ctx.message.add_reaction('❌')
-		await ctx.send("sorry, no.")
-
-@bot.command(pass_context=True)
 async def cuddle(ctx, user: discord.User):
 	if user == ctx.message.author:
 		await ctx.reply(random.choice(var.messages))
