@@ -1,4 +1,4 @@
-import aiohttp, asyncio, config, discord, random, string, sys, time, var
+import aiohttp, asyncio, config, discord, json, random, re, requests, string, sys, time, var
 from cmyui import AsyncSQLPool
 from datetime import datetime
 from discord.ext.commands import Bot
@@ -324,5 +324,36 @@ async def ar(ctx):
 			await ctx.send("Value must be between 1 and 10.")
 	else:
 		await ctx.send("Invalid mod. Avalible mods are `DT, HR, EZ`")
+
+@bot.command(pass_context=True)
+async def bminfo(ctx):
+	args = ctx.message.content.split(" ")[1:]
+	beatmapLink = args[0]
+	if beatmapLink[:31] != "https://osu.ppy.sh/beatmapsets/":
+		await ctx.send("Link must be an osu!bancho beatmap link.")
+	else:
+		beatmapRegex = r'^https?:\/\/osu.ppy.sh\/beatmapsets\/([0-9]*)#(osu|taiko|fruits|mania)\/'
+		bid = re.sub(beatmapRegex, '', beatmapLink)
+		beatmap = requests.get(f"https://osu.ppy.sh/api/get_beatmaps?k={config.api_key}&b={bid}&limit=1").text
+		beatmapInfo = json.loads(beatmap)
+		if beatmapInfo[0]["mode"] == "1":
+			mode = "taiko"
+		elif beatmapInfo[0]["mode"] == "2":
+			mode = "fruits"
+		elif beatmapInfo[0]["mode"] == "3":
+			mode = "mania"
+		else:
+			mode = "osu"
+		if beatmapInfo[0]["approved"] == "1":
+			status = "Ranked"
+		elif beatmapInfo[0]["approved"] == "-2":
+			status = "Graveyard"
+		elif beatmapInfo[0]["approved"] == "4":
+			status = "Loved"
+
+		embed = discord.Embed(title="{} - {} [{}]".format(beatmapInfo[0]["artist"], beatmapInfo[0]["title"], beatmapInfo[0]["version"]), description="{} beatmap by {}".format(status, beatmapInfo[0]["creator"]), color=0x00ffb3, timestamp=datetime.now(), url="https://osu.ppy.sh/beatmapsets/{}#{}/{}".format(beatmapInfo[0]["beatmapset_id"], mode, bid))
+		embed.add_field(name="Beatmap Info:", value="▸ CS: **{}**\n▸ OD: **{}**\n▸ AR: **{}**\n▸ HP: **{}**\n▸ BPM: **{:.0f}**\n▸ Playcount/Passcount: **{:,}/{:,}**\n▸ Max Combo: **{:,}x**\n".format(beatmapInfo[0]["diff_size"], beatmapInfo[0]["diff_overall"], beatmapInfo[0]["diff_approach"], beatmapInfo[0]["diff_drain"], float(beatmapInfo[0]["bpm"]), int(beatmapInfo[0]["playcount"]), int(beatmapInfo[0]["passcount"]), int(beatmapInfo[0]["max_combo"])))
+		embed.set_image(url="https://assets.ppy.sh/beatmaps/{}/covers/cover.jpg".format(beatmapInfo[0]["beatmapset_id"]))
+		await ctx.send(embed=embed)
 
 bot.run(config.token)
