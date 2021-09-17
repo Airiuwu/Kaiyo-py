@@ -12,3 +12,5 @@ mysql = {
     'user': ''
 }
 api_key = ''
+client_id = ''
+client_secret = '' 
