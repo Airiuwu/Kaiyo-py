@@ -58,8 +58,8 @@ async def ball(ctx):
 		await ctx.send(embed=embed)
 
 @bot.command(pass_context=True)
-async def avatar(ctx, user: discord.User):
-	if user == ctx.message.author:
+async def avatar(ctx, user: discord.User=None):
+	if not user:
 		embed = discord.Embed(color=0x00ffb3, timestamp=datetime.now())
 		embed.set_author(name=ctx.message.author.name, url=ctx.message.author.avatar_url, icon_url=ctx.message.author.avatar_url)
 		embed.set_image(url=ctx.message.author.avatar_url)
