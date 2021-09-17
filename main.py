@@ -328,31 +328,35 @@ async def ar(ctx):
 @bot.command(pass_context=True)
 async def bminfo(ctx):
 	args = ctx.message.content.split(" ")[1:]
-	beatmapLink = args[0]
-	if beatmapLink[:31] != "https://osu.ppy.sh/beatmapsets/":
+	if "https://osu.ppy.sh/beatmapsets/" not in args[0]:
 		await ctx.send("Link must be an osu!bancho beatmap link.")
 	else:
-		beatmapRegex = r'^https?:\/\/osu.ppy.sh\/beatmapsets\/([0-9]*)#(osu|taiko|fruits|mania)\/'
-		bid = re.sub(beatmapRegex, '', beatmapLink)
-		beatmap = requests.get(f"https://osu.ppy.sh/api/get_beatmaps?k={config.api_key}&b={bid}&limit=1").text
-		beatmapInfo = json.loads(beatmap)
-		if beatmapInfo[0]["mode"] == "1":
-			mode = "taiko"
-		elif beatmapInfo[0]["mode"] == "2":
-			mode = "fruits"
-		elif beatmapInfo[0]["mode"] == "3":
-			mode = "mania"
-		else:
-			mode = "osu"
+		m = re.sub(r'^(.*#)?', '', args[0])
+		modeText = re.search(r'^([A-z]*)?', m)
+		bid = re.sub(r'^(.*\/)?', '', args[0])
+		beatmapInfo = json.loads(requests.get(f"https://osu.ppy.sh/api/get_beatmaps?k={config.api_key}&b={bid}&limit=1").text)
+
+		mode = modeText.group()
+		beatmapScores = json.loads(requests.get(f"https://osu.ppy.sh/api/v2/beatmaps/{bid}/scores", params={'mode': mode, 'limit': 5}, headers={'Content-Type': 'application/json', 'Accept': 'application/json', 'Authorization': f'Bearer {await getosuToken()}'}).text)
+		status = "Graveyard"
+		message = "No scores avalible for this beatmap."
+
 		if beatmapInfo[0]["approved"] == "1":
 			status = "Ranked"
-		elif beatmapInfo[0]["approved"] == "-2":
-			status = "Graveyard"
+			message = "**▸** #1: {} - {} ● {:,}\n**▸** #2: {} - {} ● {:,}\n**▸** #3: {} - {} ● {:,}\n**▸** #4: {} - {} ● {:,}\n**▸** #5: {} - {} ● {:,}".format(beatmapScores["scores"][0]["user"]["username"], await getEmoji(scores=beatmapScores, pos=0), beatmapScores["scores"][0]["score"], beatmapScores["scores"][1]["user"]["username"], await getEmoji(scores=beatmapScores, pos=1), beatmapScores["scores"][1]["score"], beatmapScores["scores"][2]["user"]["username"], await getEmoji(scores=beatmapScores, pos=2), beatmapScores["scores"][2]["score"], beatmapScores["scores"][3]["user"]["username"], await getEmoji(scores=beatmapScores, pos=3), beatmapScores["scores"][3]["score"], beatmapScores["scores"][4]["user"]["username"], await getEmoji(scores=beatmapScores, pos=4), beatmapScores["scores"][4]["score"])
+		elif beatmapInfo[0]["approved"] == "2":
+			status = "Approved"
+			message = "**▸** #1: {} - {} ● {:,}\n**▸** #2: {} - {} ● {:,}\n**▸** #3: {} - {} ● {:,}\n**▸** #4: {} - {} ● {:,}\n**▸** #5: {} - {} ● {:,}".format(beatmapScores["scores"][0]["user"]["username"], await getEmoji(scores=beatmapScores, pos=0), beatmapScores["scores"][0]["score"], beatmapScores["scores"][1]["user"]["username"], await getEmoji(scores=beatmapScores, pos=1), beatmapScores["scores"][1]["score"], beatmapScores["scores"][2]["user"]["username"], await getEmoji(scores=beatmapScores, pos=2), beatmapScores["scores"][2]["score"], beatmapScores["scores"][3]["user"]["username"], await getEmoji(scores=beatmapScores, pos=3), beatmapScores["scores"][3]["score"], beatmapScores["scores"][4]["user"]["username"], await getEmoji(scores=beatmapScores, pos=4), beatmapScores["scores"][4]["score"])
 		elif beatmapInfo[0]["approved"] == "4":
 			status = "Loved"
+			message = "**▸** #1: {} - {} ● {:,}\n**▸** #2: {} - {} ● {:,}\n**▸** #3: {} - {} ● {:,}\n**▸** #4: {} - {} ● {:,}\n**▸** #5: {} - {} ● {:,}".format(beatmapScores["scores"][0]["user"]["username"], await getEmoji(scores=beatmapScores, pos=0), beatmapScores["scores"][0]["score"], beatmapScores["scores"][1]["user"]["username"], await getEmoji(scores=beatmapScores, pos=1), beatmapScores["scores"][1]["score"], beatmapScores["scores"][2]["user"]["username"], await getEmoji(scores=beatmapScores, pos=2), beatmapScores["scores"][2]["score"], beatmapScores["scores"][3]["user"]["username"], await getEmoji(scores=beatmapScores, pos=3), beatmapScores["scores"][3]["score"], beatmapScores["scores"][4]["user"]["username"], await getEmoji(scores=beatmapScores, pos=4), beatmapScores["scores"][4]["score"])
+			
 
-		embed = discord.Embed(title="{} - {} [{}]".format(beatmapInfo[0]["artist"], beatmapInfo[0]["title"], beatmapInfo[0]["version"]), description="{} beatmap by {}".format(status, beatmapInfo[0]["creator"]), color=0x00ffb3, timestamp=datetime.now(), url="https://osu.ppy.sh/beatmapsets/{}#{}/{}".format(beatmapInfo[0]["beatmapset_id"], mode, bid))
-		embed.add_field(name="Beatmap Info:", value="▸ CS: **{}**\n▸ OD: **{}**\n▸ AR: **{}**\n▸ HP: **{}**\n▸ BPM: **{:.0f}**\n▸ Playcount/Passcount: **{:,}/{:,}**\n▸ Max Combo: **{:,}x**\n".format(beatmapInfo[0]["diff_size"], beatmapInfo[0]["diff_overall"], beatmapInfo[0]["diff_approach"], beatmapInfo[0]["diff_drain"], float(beatmapInfo[0]["bpm"]), int(beatmapInfo[0]["playcount"]), int(beatmapInfo[0]["passcount"]), int(beatmapInfo[0]["max_combo"])))
+		embed = discord.Embed(title="{} - {} [{}]".format(beatmapInfo[0]["artist"], beatmapInfo[0]["title"], beatmapInfo[0]["version"]), description="Beatmap Status: **{}**".format(status), color=0x00ffb3, timestamp=datetime.now(), url="https://osu.ppy.sh/beatmapsets/{}#{}/{}".format(beatmapInfo[0]["beatmapset_id"], mode, bid))
+		embed.set_thumbnail(url="https://katsumi.cf/static/ranking-status-icons/{}.png".format(status))
+		embed.set_author(name=beatmapInfo[0]["creator"], url="https://osu.ppy.sh/users/{}".format(int(beatmapInfo[0]["creator_id"])), icon_url="https://a.ppy.sh/{}?.png".format(int(beatmapInfo[0]["creator_id"])))
+		embed.add_field(name="Beatmap Info:", value="**▸** CS: **{}** / OD: **{}** / AR: **{}** / HP: **{}** \n**▸** BPM: **{:.0f} 🎵**\n**▸** Star Rating: **{:.2f} ⭐**\n**▸** Playcount: **{:,}**\n**▸** Passcount: **{:,}**\n**▸** Favourite Count: **{:,}**\n**▸** Max Combo: **{:,}x**\n**▸** Length: **{}**".format(beatmapInfo[0]["diff_size"], beatmapInfo[0]["diff_overall"], beatmapInfo[0]["diff_approach"], beatmapInfo[0]["diff_drain"], float(beatmapInfo[0]["bpm"]), float(beatmapInfo[0]["difficultyrating"]), int(beatmapInfo[0]["playcount"]), int(beatmapInfo[0]["passcount"]), int(beatmapInfo[0]["favourite_count"]), int(beatmapInfo[0]["max_combo"]), await ms(seconds=float(beatmapInfo[0]["total_length"]))))
+		embed.add_field(name="Scores:", value=message)
 		embed.set_image(url="https://assets.ppy.sh/beatmaps/{}/covers/cover.jpg".format(beatmapInfo[0]["beatmapset_id"]))
 		await ctx.send(embed=embed)
 
